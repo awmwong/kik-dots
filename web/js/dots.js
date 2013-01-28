@@ -70,6 +70,7 @@ dot.GameScene = pulse.Scene.extend({
     this.generateDots(10)
   },
 
+
   generateDots: function(number) {
     
     // Remove the old dots
@@ -88,17 +89,40 @@ dot.GameScene = pulse.Scene.extend({
         },
         name: 'dot' + i
       });
-   
-      adot.position.x = Math.floor(Math.random() * adot.xMax);
-      adot.position.y = Math.floor(Math.random() * adot.yMax);
 
-      console.log('d ' + adot.xMax + ',' + adot.xMin);
+      do {
+        var randomX = Math.floor(Math.random() * (adot.xMax - adot.xMin)) + adot.xMin;
+        var randomY = Math.floor(Math.random() * (adot.yMax - adot.yMin)) + adot.yMin;
+        adot.position.x = randomX;
+        adot.position.y = randomY;
+      } while (this.checkOverlapping(adot));
 
 
-      console.log('Generate dot at ' + adot.position.x + ',' + adot.position.y);
       this.layer.addNode(adot);
       this.dots[i] = adot;
     }
+  },
+
+  checkOverlapping: function(adot) {
+    // checks if the dot passed in is overlapping with any other dots
+    for (var i = this.dots.length - 1; i >= 0; i--) {
+      var anotherDot = this.dots[i]
+
+      var xs = anotherDot.position.x - adot.position.x;
+      xs *= xs;
+
+      var ys = anotherDot.position.y - adot.position.y;
+      ys *= ys;
+
+      var lineDistance = Math.sqrt(xs + ys);
+
+      if (lineDistance <= adot.size.width + 12) {
+        return true;
+      }
+
+    };
+
+    return false;
   }
 
 });
@@ -114,7 +138,9 @@ dot.DotSprite = pulse.Sprite.extend({
     this.xMax = this.maxX - (this.size.width/2);
     this.yMax = this.maxY - (this.size.height/2);
     this.xMin = this.size.width / 2;
-    this.yMin = this.size.height / 2;
+
+    // 48 px to give room for the top score and button
+    this.yMin = (this.size.height / 2) + 48;
 
     this.touched = false;
 
