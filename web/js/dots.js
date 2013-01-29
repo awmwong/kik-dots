@@ -1,28 +1,19 @@
-// window.addEventListener("resize", OnResizeCalled, false);
-
-function OnResizeCalled() {
-  var canvas = document.getElementById('live:Node1');
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-}
-
 pulse.ready(function(){
   console.log('Pulse Ready');
 
   var gameWindow = document.getElementById('game-window');
   gameWindow.style.width = window.innerWidth + 'px';
   gameWindow.style.height = window.innerHeight + 'px';
-  console.log(gameWindow.style.width);
 
-  // pulse.debug.manager = new pulse.debug.DebugManager();
+
 
   // Textures
   dot.Constants.GreenDot = new pulse.Texture({
-    filename: 'img/dot-green.png'
+    filename: 'img/hi-dot-green.png'
   });
 
   dot.Constants.BlackDot = new pulse.Texture({
-    filename: 'img/dot.png'
+    filename: 'img/hi-dot-black.png'
   });
 
   // Main app engine
@@ -39,6 +30,15 @@ pulse.ready(function(){
 
   // Start the update and render loop.
   engine.go(1);
+
+  if (window.devicePixelRatio === 1) {
+
+    var canvas = document.getElementById('live:Node3');
+    canvas.style.width = window.innerWidth / 2 + 'px';
+    canvas.style.height = window.innerHeight / 2 + 'px';
+
+
+  }
 });
 
 var dot = {};
@@ -92,38 +92,38 @@ dot.GameScene = pulse.Scene.extend({
     // Score label
     this.scoreLabel = new pulse.CanvasLabel({
       text : '0',
-      fontSize : 24
+      fontSize : 48
     });
     this.scoreLabel.fillColor = "#CCFF00";
     this.scoreLabel.anchor = { x: 0, y: 0 };
-    this.scoreLabel.position = { x: 10, y: 2};
+    this.scoreLabel.position = { x: 20, y: 4};
     this.layer.addNode(this.scoreLabel);
 
     // Combo label
     this.streakLabel = new pulse.CanvasLabel({
       text : 'Streak: 1x',
-      fontSize: 12,
+      fontSize: 36,
     });
     this.streakLabel.fillColor = "#CCFF00";
     this.streakLabel.anchor = { x: 0, y: 0 };
-    this.streakLabel.position = { x: 10, y: 32};
+    this.streakLabel.position = { x: 20, y: 64};
     this.layer.addNode(this.streakLabel);
 
     // Timer label
     this.timerLabel = new pulse.CanvasLabel({
       text : '10',
-      fontSize: 24
+      fontSize: 48
     });
 
     this.timerLabel.fillColor = "#CCFF00";
     this.timerLabel.anchor = { x: 0, y: 0 };
-    this.timerLabel.position = { x: 10, y: dot.Constants.Height - 48};
+    this.timerLabel.position = { x: 20, y: dot.Constants.Height - 96};
     this.layer.addNode(this.timerLabel);
 
     // Announcement label
     this.announcementLabel = new dot.AnnouncementLabel({
       text: 'Go!',
-      fontSize: 48,
+      fontSize: 96,
     })
     this.announcementLabel.fillColor = "#CCFF00";
     this.announcementLabel.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
@@ -295,8 +295,8 @@ dot.GameScene = pulse.Scene.extend({
       var adot = new dot.DotSprite({
         src: dot.Constants.GreenDot,
         size: {
-          width: 48,
-          height: 48
+          width: 96,
+          height: 96
         },
         name: i
       });
@@ -349,13 +349,14 @@ dot.DotSprite = pulse.Sprite.extend({
     this.maxY = dot.Constants.Height;
     this.xMax = this.maxX - (this.size.width/2);
 
-    // 48 px to give room for the bottom timer bar
-    this.yMax = this.maxY - (this.size.height/2) - 48;
+    // 96 px to give room for the bottom timer bar
+    this.yMax = this.maxY - (this.size.height/2) - 96;
 
-    this.xMin = this.size.width / 2;
+    // 48 px to give room not to trigger sidebar
+    this.xMin = this.size.width / 2 + 48;
 
-    // 48 px to give room for the top score and button
-    this.yMin = (this.size.height / 2) + 48;
+    // 96 px to give room for the top score and button
+    this.yMin = (this.size.height / 2) + 96;
 
     this.touched = false;
 
@@ -384,11 +385,11 @@ dot.TimerBar = pulse.Visual.extend({
   draw: function(ctx){
     this._super(ctx);
 
-    var x = 48;
-    var width = this.percentage * (dot.Constants.Width - x - 24);
+    var x = 96;
+    var width = this.percentage * (dot.Constants.Width - x - 48);
 
-    var height = 24;
-    var y = dot.Constants.Height - height - 24;
+    var height = 48;
+    var y = dot.Constants.Height - height - 48;
 
     ctx.fillStyle = "#CCFF00";
     ctx.fillRect(x, y, width, height);
