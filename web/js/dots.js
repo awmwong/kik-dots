@@ -9,6 +9,11 @@ function OnResizeCalled() {
 pulse.ready(function(){
   console.log('Pulse Ready');
 
+  var gameWindow = document.getElementById('game-window');
+  gameWindow.style.width = window.innerWidth + 'px';
+  gameWindow.style.height = window.innerHeight + 'px';
+  console.log(gameWindow.style.width);
+
   // pulse.debug.manager = new pulse.debug.DebugManager();
 
   // Main app engine
@@ -30,8 +35,8 @@ pulse.ready(function(){
 var dot = {};
 
 dot.Constants = {
-  Width: 320,
-  Height: 480,
+  Width: window.innerWidth,
+  Height: window.innerHeight,
 };
 
 dot.GameEngine = pulse.Engine.extend({
