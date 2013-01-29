@@ -76,6 +76,13 @@ dot.GameScene = pulse.Scene.extend({
     // Current dots on the screen
     this.dots = [];
 
+    // Success Messages
+    this.successMessages = ['Ok!', 'Sweet!', 'Nice!', 'Yea!', 'Wicked!', 'Cool!', 'Woot!'];
+
+    // Fail Messages!
+    this.failureMessages = ['Fail!', 'Nope!', 'Huh?!', 'No!', 'Bad!', 'What?!', 'LOL!'];
+
+    // Failure Messages
     // Create the main game layer
     this.layer = new pulse.Layer();
     this.layer.anchor.x = 0;
@@ -112,6 +119,16 @@ dot.GameScene = pulse.Scene.extend({
     this.timerLabel.anchor = { x: 0, y: 0 };
     this.timerLabel.position = { x: 10, y: dot.Constants.Height - 48};
     this.layer.addNode(this.timerLabel);
+
+    // Announcement label
+    this.announcementLabel = new dot.AnnouncementLabel({
+      text: 'Go!',
+      fontSize: 48,
+    })
+    this.announcementLabel.fillColor = "#CCFF00";
+    this.announcementLabel.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
+    this.announcementLabel.visible = false;
+    this.layer.addNode(this.announcementLabel);
 
     // Timer bar
     this.timerBar = new dot.TimerBar();
@@ -166,7 +183,8 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   correctOrder: function (){
-    console.log('Correct order!');
+    var randomIndex = Math.floor(Math.random() * (this.successMessages.length - 1));
+    this.announcementLabel.showAnnouncement(this.successMessages[randomIndex]);
     this.streak++;
     this.updateScore();
     this.beginRound();
@@ -174,8 +192,9 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   incorrectOrder: function (){
+    var randomIndex = Math.floor(Math.random() * (this.successMessages.length - 1));
+    this.announcementLabel.showBadAnnouncement(this.failureMessages[randomIndex]);
     this.streak = 1;
-    console.log('Incorrect order!');
     this.beginRound();
   },
 
@@ -240,6 +259,7 @@ dot.GameScene = pulse.Scene.extend({
 
     if (this.currentDotIndex >= this.dots.length) {
       this.state = 'playing';
+      this.announcementLabel.showAnnouncement('Go!');
     }
   },
 
@@ -259,6 +279,7 @@ dot.GameScene = pulse.Scene.extend({
 
     // Generate the dots
     this.generateDots(Math.min(12, Math.max(3, Math.floor(this.currentLevel / 3))));
+
   },
 
   generateDots: function(number) {
@@ -372,4 +393,57 @@ dot.TimerBar = pulse.Visual.extend({
     ctx.fillStyle = "#CCFF00";
     ctx.fillRect(x, y, width, height);
   }
-})
+});
+
+dot.AnnouncementLabel = pulse.CanvasLabel.extend({
+  init: function(params) {
+    this._super(params);
+    this.time = 0;
+    this.easeTime = 0;
+    this.animationSpeed = 50;
+    this.alpha = 100;
+  },
+
+  update: function(elapsed) {
+    this._super(elapsed);
+    this.time += elapsed;
+    this.easeTime += elapsed;
+    if (this.time >= this.animationSpeed) {
+      this.time = 0;
+      // tick!
+      var newAlpha = Math.max(0, pulse.util.easeOutCubic(this.easeTime, 100, -100, 750));
+      this.alpha = newAlpha;
+
+      if (this.alpha === 0) {
+        this.visible = false;
+      }
+    }
+  },
+
+  showAnnouncement: function(message) {
+    var self = this;
+
+    this.fillColor = "#CCFF00";
+    this.text = message;
+
+    setTimeout(function(){
+      self.alpha = 100;
+      self.easeTime = 0;
+      self.visible = true;
+    },10)
+
+  },
+
+  showBadAnnouncement: function(message) {
+    var self = this;
+
+    this.fillColor = "#FF2200";
+    this.text = message;
+
+    setTimeout(function(){
+      self.alpha = 100;
+      self.easeTime = 0;
+      self.visible = true;
+    }, 10);
+  }
+});
