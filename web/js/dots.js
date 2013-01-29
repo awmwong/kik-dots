@@ -1,3 +1,11 @@
+// window.addEventListener("resize", OnResizeCalled, false);
+
+function OnResizeCalled() {
+  var canvas = document.getElementById('live:Node1');
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+}
+
 pulse.ready(function(){
   console.log('Pulse Ready');
 
@@ -6,8 +14,6 @@ pulse.ready(function(){
   // Main app engine
   var engine = new dot.GameEngine({
     gameWindow: 'game-window',
-    width: dot.Constants.Width,
-    height: dot.Constants.Height
   });
 
   // Game scene
@@ -31,11 +37,6 @@ dot.Constants = {
 dot.GameEngine = pulse.Engine.extend({
   init: function(params) {
     this._super(params);
-
-    this.level = 1;
-
-    this.dots = [];
-
   }
 });
 
@@ -45,6 +46,18 @@ dot.GameScene = pulse.Scene.extend({
 
     this._super(params);
 
+    // State variables
+    this.state = 'init';
+    this.currentLevel = 1;
+    this.streak = 1;
+    this.currentDotIndex = 0;
+    this.time = 0;
+    this.animationSpeed = 75;
+    this.score = 0;
+    this.lastDotTouched = -1;
+    this.roundDuration = 0;
+    this.elapsedRoundTime = 0;
+
     // Current dots on the screen
     this.dots = [];
 
@@ -52,30 +65,44 @@ dot.GameScene = pulse.Scene.extend({
     this.layer = new pulse.Layer();
     this.layer.anchor.x = 0;
     this.layer.anchor.y = 0;
-    this.layer.size.x = dot.Constants.width;
-    this.layer.size.y = dot.Constants.height;
-    this.layer.fillColor = "#666666"
-
     this.addLayer(this.layer);
 
+    // Score label
     this.scoreLabel = new pulse.CanvasLabel({
       text : '0',
-      fontSize : 18
+      fontSize : 24
     });
-    this.scoreLabel.fillColor = "#000000";
+    this.scoreLabel.fillColor = "#CCFF00";
     this.scoreLabel.anchor = { x: 0, y: 0 };
     this.scoreLabel.position = { x: 10, y: 2};
     this.layer.addNode(this.scoreLabel);
 
-    // state variables
-    this.state = 'init';
-    this.currentLevel = 1;
-    this.streak = 0;
-    this.currentDotIndex = 0;
-    this.time = 0;
-    this.animationSpeed = 75;
-    this.score = 0;
-    this.lastDotTouched = -1;
+    // Combo label
+    this.streakLabel = new pulse.CanvasLabel({
+      text : 'Streak: 1x',
+      fontSize: 12,
+    });
+    this.streakLabel.fillColor = "#CCFF00";
+    this.streakLabel.anchor = { x: 0, y: 0 };
+    this.streakLabel.position = { x: 10, y: 32};
+    this.layer.addNode(this.streakLabel);
+
+    // Timer label
+    this.timerLabel = new pulse.CanvasLabel({
+      text : '10',
+      fontSize: 24
+    });
+
+    this.timerLabel.fillColor = "#CCFF00";
+    this.timerLabel.anchor = { x: 0, y: 0 };
+    this.timerLabel.position = { x: 10, y: dot.Constants.Height - 48};
+    this.layer.addNode(this.timerLabel);
+
+    // Timer bar
+    this.timerBar = new dot.TimerBar();
+    this.timerBar.position.x = 50;
+    this.timerBar.position.y = 50;
+    this.layer.addNode(this.timerBar);
 
     this.beginRound();
 
@@ -89,6 +116,7 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   dotTouched: function(evt) {
+    this.hasTouchedDots = true;
     var touchedDot = evt.sender;
 
     if (touchedDot.name == this.lastDotTouched + 1) {
@@ -98,19 +126,43 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   touchEnd: function() {
-    if (this.lastDotTouched == this.dots.length - 1) {
-      console.log('Correct order!');
-      this.updateScore();
-    } else {
-      this.streak = 0
-      console.log('Incorrect order!');
+    if (this.state != 'playing') {
+      return;
     }
 
+    // If user hasn't begun touching dots
+    if (!this.hasTouchedDots) {
+      return;
+    }
+
+    if (this.lastDotTouched == this.dots.length - 1) {
+      this.correctOrder();
+    } else {
+      this.incorrectOrder();
+    }
+
+  },
+
+  correctOrder: function (){
+    console.log('Correct order!');
+    this.streak++;
+    this.updateScore();
+    this.beginRound();
+
+  },
+
+  incorrectOrder: function (){
+    this.streak = 1;
+    console.log('Incorrect order!');
     this.beginRound();
   },
 
   updateScore: function() {
-    this.score += this.dots.length * ++this.streak;
+    var timeRemaining = this.roundDuration - this.elapsedRoundTime;
+    var timeRemainingAsSeconds = Math.floor((timeRemaining / 1000));
+
+    timeAsString = timeRemainingAsSeconds;
+    this.score += this.dots.length * this.streak * timeRemainingAsSeconds;
     this.scoreLabel.text = this.score;
     this.currentLevel++;
   },
@@ -118,13 +170,38 @@ dot.GameScene = pulse.Scene.extend({
   update: function(elapsed) {
     this._super(elapsed);
 
+    this.streakLabel.text = "Streak: " + this.streak + "x";
+
+
     if (this.state == 'animating') {
+      this.timerBar.percentage = 1;
       this.time += elapsed;
       if (this.time >= (this.animationSpeed - this.currentLevel)) {
         this.animationTick();
         this.time = 0;
       }
     }
+
+    if (this.state == 'playing') {
+      this.elapsedRoundTime += elapsed;
+      this.updateTimers();
+    }
+
+  },
+
+  updateTimers: function() {
+    var timeRemaining = this.roundDuration - this.elapsedRoundTime;
+    var timeRemainingAsSeconds = (timeRemaining / 1000).toFixed(1);
+
+    timeAsString = timeRemainingAsSeconds;
+
+    this.timerLabel.text = timeAsString;
+    this.timerBar.percentage = Math.max(0, 1 - (this.elapsedRoundTime / this.roundDuration));
+
+    if (this.timerBar.percentage === 0) {
+      this.incorrectOrder();
+    } 
+
   },
 
   animationTick: function() {
@@ -149,14 +226,18 @@ dot.GameScene = pulse.Scene.extend({
 
     // Reset states
     this.currentDotIndex = 0;
+    this.roundDuration = 5100.0 - (100 * this.currentLevel);
+    this.elapsedRoundTime = 0;
+    this.updateTimers();
+
     this.lastDotTouched = -1;
+    this.hasTouchedDots = false;
 
     var dotCount;
 
     // Generate the dots
     this.generateDots(Math.min(12, Math.max(3, this.currentLevel / 2)));
   },
-
 
   generateDots: function(number) {
     
@@ -222,7 +303,10 @@ dot.DotSprite = pulse.Sprite.extend({
     this.maxX = dot.Constants.Width;
     this.maxY = dot.Constants.Height;
     this.xMax = this.maxX - (this.size.width/2);
-    this.yMax = this.maxY - (this.size.height/2);
+
+    // 48 px to give room for the bottom timer bar
+    this.yMax = this.maxY - (this.size.height/2) - 48;
+
     this.xMin = this.size.width / 2;
 
     // 48 px to give room for the top score and button
@@ -246,3 +330,23 @@ dot.DotSprite = pulse.Sprite.extend({
   }
   
 });
+
+dot.TimerBar = pulse.Visual.extend({
+  init: function(params) {
+    this._super(params);
+    this.percentage = 1;
+  },
+
+  draw: function(ctx){
+    this._super(ctx);
+
+    var x = 48;
+    var width = this.percentage * (dot.Constants.Width - x - 24);
+
+    var height = 24;
+    var y = dot.Constants.Height - height - 24;
+
+    ctx.fillStyle = "#CCFF00";
+    ctx.fillRect(x, y, width, height);
+  }
+})
