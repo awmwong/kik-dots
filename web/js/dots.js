@@ -16,6 +16,15 @@ pulse.ready(function(){
 
   // pulse.debug.manager = new pulse.debug.DebugManager();
 
+  // Textures
+  dot.Constants.GreenDot = new pulse.Texture({
+    filename: 'img/dot-green.png'
+  });
+
+  dot.Constants.BlackDot = new pulse.Texture({
+    filename: 'img/dot.png'
+  });
+
   // Main app engine
   var engine = new dot.GameEngine({
     gameWindow: 'game-window',
@@ -29,7 +38,7 @@ pulse.ready(function(){
   engine.scenes.activateScene(gameScene);
 
   // Start the update and render loop.
-  engine.go(16);
+  engine.go(1);
 });
 
 var dot = {};
@@ -57,6 +66,7 @@ dot.GameScene = pulse.Scene.extend({
     this.streak = 1;
     this.currentDotIndex = 0;
     this.time = 0;
+    this.trailTime = 0;
     this.animationSpeed = 75;
     this.score = 0;
     this.lastDotTouched = -1;
@@ -121,8 +131,15 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   dotTouched: function(evt) {
+
+    if (this.state !== 'playing') {
+      return;
+    }
+
     this.hasTouchedDots = true;
     var touchedDot = evt.sender;
+    touchedDot.touched = true;
+    touchedDot.texture = dot.Constants.BlackDot;
 
     if (touchedDot.name == this.lastDotTouched + 1) {
       // if the dot you touched is the next consecutive dot
@@ -131,7 +148,7 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   touchEnd: function() {
-    if (this.state != 'playing') {
+    if (this.state !== 'playing') {
       return;
     }
 
@@ -241,7 +258,7 @@ dot.GameScene = pulse.Scene.extend({
     var dotCount;
 
     // Generate the dots
-    this.generateDots(Math.min(12, Math.max(3, this.currentLevel / 2)));
+    this.generateDots(Math.min(12, Math.max(3, Math.floor(this.currentLevel / 3))));
   },
 
   generateDots: function(number) {
@@ -255,7 +272,7 @@ dot.GameScene = pulse.Scene.extend({
     // Make new dots!
     for (var i = 0; i < number; i++) {
       var adot = new dot.DotSprite({
-        src: 'img/dot.png',
+        src: dot.Constants.GreenDot,
         size: {
           width: 48,
           height: 48
@@ -305,6 +322,8 @@ dot.DotSprite = pulse.Sprite.extend({
     var self = this;
     this._super(params);
 
+    // this.texture = dot.Textures.GreenDot;
+
     this.maxX = dot.Constants.Width;
     this.maxY = dot.Constants.Height;
     this.xMax = this.maxX - (this.size.width/2);
@@ -322,18 +341,17 @@ dot.DotSprite = pulse.Sprite.extend({
     this.events.bind('touchmove', function() {
       self.touchmove();
     });
+
   },
 
   touchmove: function(evt) {
     if (!this.touched) {
-      this.touched = true;
-
       var event = new pulse.Event();
       event.sender = this;
       this.parent.events.raiseEvent('dotTouched', event);
     }
-  }
-  
+  },
+
 });
 
 dot.TimerBar = pulse.Visual.extend({
