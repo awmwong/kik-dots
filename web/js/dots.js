@@ -1,6 +1,8 @@
 pulse.ready(function(){
   console.log('Pulse Ready');
 
+  // pulse.debug.manager = new pulse.debug.DebugManager();
+
   // Main app engine
   var engine = new dot.GameEngine({
     gameWindow: 'game-window',
@@ -43,9 +45,6 @@ dot.GameScene = pulse.Scene.extend({
 
     this._super(params);
 
-    // Current level of the game
-    this.currentLevel = 1;
-
     // Current dots on the screen
     this.dots = [];
 
@@ -53,21 +52,109 @@ dot.GameScene = pulse.Scene.extend({
     this.layer = new pulse.Layer();
     this.layer.anchor.x = 0;
     this.layer.anchor.y = 0;
+    this.layer.size.x = dot.Constants.width;
+    this.layer.size.y = dot.Constants.height;
+    this.layer.fillColor = "#666666"
+
     this.addLayer(this.layer);
+
+    this.scoreLabel = new pulse.CanvasLabel({
+      text : '0',
+      fontSize : 18
+    });
+    this.scoreLabel.fillColor = "#000000";
+    this.scoreLabel.anchor = { x: 0, y: 0 };
+    this.scoreLabel.position = { x: 10, y: 2};
+    this.layer.addNode(this.scoreLabel);
+
+    // state variables
+    this.state = 'init';
+    this.currentLevel = 1;
+    this.streak = 0;
+    this.currentDotIndex = 0;
+    this.time = 0;
+    this.animationSpeed = 75;
+    this.score = 0;
+    this.lastDotTouched = -1;
 
     this.beginRound();
 
-    this.events.bind('touchend', function() {
-      console.log('Touch ended in the main canvas!');
-      self.generateDots(3);
+    this.layer.events.bind('dotTouched', function(evt) {
+      self.dotTouched(evt);
     });
+
+    this.layer.events.bind('touchend', function() {
+      self.touchEnd();
+    });
+  },
+
+  dotTouched: function(evt) {
+    var touchedDot = evt.sender;
+
+    if (touchedDot.name == this.lastDotTouched + 1) {
+      // if the dot you touched is the next consecutive dot
+      this.lastDotTouched++;
+    }
+  },
+
+  touchEnd: function() {
+    if (this.lastDotTouched == this.dots.length - 1) {
+      console.log('Correct order!');
+      this.updateScore();
+    } else {
+      this.streak = 0
+      console.log('Incorrect order!');
+    }
+
+    this.beginRound();
+  },
+
+  updateScore: function() {
+    this.score += this.dots.length * ++this.streak;
+    this.scoreLabel.text = this.score;
+    this.currentLevel++;
+  },
+
+  update: function(elapsed) {
+    this._super(elapsed);
+
+    if (this.state == 'animating') {
+      this.time += elapsed;
+      if (this.time >= (this.animationSpeed - this.currentLevel)) {
+        this.animationTick();
+        this.time = 0;
+      }
+    }
+  },
+
+  animationTick: function() {
+
+    if (!this.dots.length) return;
+
+    var currentDot = this.dots[this.currentDotIndex];
+
+    currentDot.alpha += 20;
+
+    if (currentDot.alpha >= 100) {
+      this.currentDotIndex++;
+    }
+
+    if (this.currentDotIndex >= this.dots.length) {
+      this.state = 'playing';
+    }
   },
 
   beginRound: function(params) {
     var self = this;
 
+    // Reset states
+    this.currentDotIndex = 0;
+    this.lastDotTouched = -1;
+
+    var dotCount;
+
     // Generate the dots
-    this.generateDots(10)
+    this.generateDots(Math.min(12, Math.max(3, this.currentLevel / 2)));
   },
 
 
@@ -87,7 +174,7 @@ dot.GameScene = pulse.Scene.extend({
           width: 48,
           height: 48
         },
-        name: 'dot' + i
+        name: i
       });
 
       do {
@@ -97,10 +184,12 @@ dot.GameScene = pulse.Scene.extend({
         adot.position.y = randomY;
       } while (this.checkOverlapping(adot));
 
-
+      adot.alpha = 0;
       this.layer.addNode(adot);
       this.dots[i] = adot;
     }
+
+    this.state = 'animating';
   },
 
   checkOverlapping: function(adot) {
@@ -116,15 +205,12 @@ dot.GameScene = pulse.Scene.extend({
 
       var lineDistance = Math.sqrt(xs + ys);
 
-      if (lineDistance <= adot.size.width + 12) {
+      if (lineDistance <= adot.size.width + 24) {
         return true;
       }
-
     };
-
     return false;
   }
-
 });
 
 
@@ -151,13 +237,11 @@ dot.DotSprite = pulse.Sprite.extend({
 
   touchmove: function(evt) {
     if (!this.touched) {
-      console.log('moved through ' + this.name);
-
       this.touched = true;
 
-      this.events.raiseEvent('dotTouched', new pulse.Event({
-        dot: this
-      }));
+      var event = new pulse.Event();
+      event.sender = this;
+      this.parent.events.raiseEvent('dotTouched', event);
     }
   }
   
