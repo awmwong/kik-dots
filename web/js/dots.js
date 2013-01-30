@@ -1,11 +1,12 @@
-var dot = {};
+// CARDS STUFF
+// Lock the orientation in lanscape mode
+cards.ready(function(){
+  console.log("Cards Ready");
 
-dot.Constants = {
-  Width: 0,
-  Height: 0
-};
+  if (cards.browser) {
+    cards.browser.setOrientationLock('portrait');
+  }
 
-pulse.ready(function(){
   console.log('Pulse Ready');
 
   // Textures
@@ -43,6 +44,7 @@ pulse.ready(function(){
   var menuScene = new dot.MenuScene();
   menuScene.events.bind('gameStart', function(){
     engine.scenes.deactivateScene(menuScene);
+    gameScene.startNewGame();
     engine.scenes.activateScene(gameScene);
   });
 
@@ -55,6 +57,19 @@ pulse.ready(function(){
 
   // Start the update and render loop.
   engine.go(1);
+  
+});
+
+
+var dot = {};
+
+dot.Constants = {
+  Width: 0,
+  Height: 0
+};
+
+pulse.ready(function(){
+
 });
 
 
@@ -70,22 +85,49 @@ dot.MenuScene = pulse.Scene.extend({
     this._super(params);
 
     // Create a new layer
-    var layer = new pulse.Layer();
-    layer.anchor.x = 0;
-    layer.anchor.y = 0;
-    this.addLayer(layer);
+    this.menuLayer = new pulse.Layer();
+    this.menuLayer.anchor.x = 0;
+    this.menuLayer.anchor.y = 0;
+    this.addLayer(this.menuLayer);
 
 
     // Play Button
-    var playButton = new pulse.Sprite({
-      src:'img/play-button.png'
+    this.playButton = new pulse.Sprite({
+      src:'img/play-button.png',
+      size: {
+        width: 160,
+        height: 90
+      }
     });
-    playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
-    playButton.events.bind('touchend', function(e){
+    this.playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
+    this.playButton.events.bind('touchend', function(e){
       self.events.raiseEvent('gameStart', e);
     });
-    
-    layer.addNode(playButton);
+    this.menuLayer.addNode(this.playButton);
+
+    // Score Label
+    this.scoreLabel = new pulse.CanvasLabel({
+      text: "Highscore: ",
+      fontSize: 20,
+    });
+    this.menuLayer.addNode(this.scoreLabel);
+    this.scoreLabel.position = { x: dot.Constants.Width / 2, y: (dot.Constants.Height / 2) + (this.playButton.size.height / 2) + 24};
+    this.scoreLabel.fillColor = '#CCFF00'
+  },
+
+  update: function(elapsed) {
+    this._super(elapsed);
+    this.updateScore();
+  },
+
+  updateScore: function() {
+    var highScore = localStorage['highscore'];
+    if ( highScore !== undefined) {
+      this.scoreLabel.visible = true;
+      this.scoreLabel.text = "Highscore: " + highScore;
+    } else {
+      this.scoreLabel.visible = false;
+    }
   }
 });
 
@@ -97,21 +139,11 @@ dot.GameScene = pulse.Scene.extend({
 
     this._super(params);
 
-    // State variables
-    this.state = 'init';
-    this.currentLevel = 1;
-    this.streak = 1;
-    this.currentDotIndex = 0;
-    this.time = 0;
-    this.trailTime = 0;
-    this.animationSpeed = 75;
-    this.score = 0;
-    this.lastDotTouched = -1;
-    this.roundDuration = 0;
-    this.elapsedRoundTime = 0;
-
     // Current dots on the screen
     this.dots = [];
+
+    // Trail Points
+    this.trailPoints = [];
 
     // Success Messages
     this.successMessages = ['Ok!', 'Sweet!', 'Nice!', 'Yea!', 'Wicked!', 'Cool!', 'Woot!'];
@@ -137,7 +169,7 @@ dot.GameScene = pulse.Scene.extend({
 
     // Combo label
     this.streakLabel = new pulse.CanvasLabel({
-      text : 'Streak: 1x',
+      text : 'Lives: 3 | Streak: 1x',
       fontSize: 18,
     });
     this.streakLabel.fillColor = "#CCFF00";
@@ -192,7 +224,7 @@ dot.GameScene = pulse.Scene.extend({
     this.timerBar.position.y = 25;
     this.layer.addNode(this.timerBar);
 
-    this.beginRound();
+    this.startNewGame();
 
     this.layer.events.bind('dotTouched', function(evt) {
       self.dotTouched(evt);
@@ -201,6 +233,38 @@ dot.GameScene = pulse.Scene.extend({
     this.layer.events.bind('touchend', function() {
       self.touchEnd();
     });
+
+    this.layer.eevents.bind('touchmove', function(evt) {
+      self.onTouchMove(evt);
+    }
+  },
+
+  resetState: function(){
+    // State variables
+    this.state = 'init';
+    this.currentLevel = 1;
+    this.streak = 1;
+    this.currentDotIndex = 0;
+    this.time = 0;
+    this.trailTime = 0;
+    this.animationSpeed = 75;
+    this.score = 0;
+    this.lastDotTouched = -1;
+    this.roundDuration = 0;
+    this.elapsedRoundTime = 0;
+    this.lives = 3;
+
+    // Labels
+    this.scoreLabel.text = this.score;
+  },
+
+  startNewGame: function(){
+    this.resetState();
+    this.beginRound();
+  },
+
+  onTouchMove: function(){
+    
   },
 
   dotTouched: function(evt) {
@@ -250,6 +314,18 @@ dot.GameScene = pulse.Scene.extend({
     var randomIndex = Math.floor(Math.random() * (this.successMessages.length - 1));
     this.announcementLabel.showBadAnnouncement(this.failureMessages[randomIndex]);
     this.streak = 1;
+    this.lives--;
+
+    if (this.lives === 0) {
+      var prevHighScore = localStorage['highscore'];
+
+      if (this.score > prevHighScore || prevHighScore === undefined) {
+        localStorage['highscore'] = this.score;
+      }
+
+      this.events.raiseEvent('gameEnd', this.score);
+    }
+
     this.beginRound();
   },
 
@@ -266,7 +342,7 @@ dot.GameScene = pulse.Scene.extend({
   update: function(elapsed) {
     this._super(elapsed);
 
-    this.streakLabel.text = "Streak: " + this.streak + "x";
+    this.streakLabel.text = "Lives: " + this.lives +" | Streak: " + this.streak + "x";
 
 
     if (this.state == 'animating') {
