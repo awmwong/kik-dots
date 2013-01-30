@@ -234,9 +234,9 @@ dot.GameScene = pulse.Scene.extend({
       self.touchEnd();
     });
 
-    this.layer.eevents.bind('touchmove', function(evt) {
+    this.layer.events.bind('touchmove', function(evt) {
       self.onTouchMove(evt);
-    }
+    });
   },
 
   resetState: function(){
@@ -264,7 +264,7 @@ dot.GameScene = pulse.Scene.extend({
   },
 
   onTouchMove: function(){
-    
+
   },
 
   dotTouched: function(evt) {
