@@ -1,4 +1,6 @@
 /* TODO */
 #game-window {
   background: #000 url('../img/background.png');
+  /*background: red;*/
+  overflow: hidden;
 }

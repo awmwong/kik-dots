@@ -3355,7 +3355,7 @@ pulse.Scene = pulse.Node.extend({init:function(params) {
 }, getSceneContainer:function() {
   if(!this.container) {
     this.container = document.createElement("div");
-    this.container.style.position = "absolute";
+    // this.container.style.position = "absolute";
     this.container.id = this.name;
     this.updateLiveLayers()
   }

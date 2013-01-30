@@ -1,58 +1,95 @@
+var dot = {};
+
+dot.Constants = {
+  Width: 0,
+  Height: 0
+};
+
 pulse.ready(function(){
   console.log('Pulse Ready');
 
-  var gameWindow = document.getElementById('game-window');
-  gameWindow.style.width = window.innerWidth + 'px';
-  gameWindow.style.height = window.innerHeight + 'px';
-
-
-
   // Textures
   dot.Constants.GreenDot = new pulse.Texture({
-    filename: 'img/hi-dot-green.png'
+    filename: 'img/hi-dot-green.png',
   });
 
   dot.Constants.BlackDot = new pulse.Texture({
     filename: 'img/hi-dot-black.png'
   });
 
+  var gameWindow = document.getElementById('game-window');
+  gameWindow.style.width = window.innerWidth + 'px';
+  gameWindow.style.height = window.innerHeight + 'px';
+  dot.Constants.Width = window.innerWidth;
+  dot.Constants.Height = window.innerHeight;
+  
   // Main app engine
   var engine = new dot.GameEngine({
-    gameWindow: 'game-window',
+    size: {
+      width: dot.Constants.Width,
+      height: dot.Constants.Height
+    },
+    gameWindow: 'game-window'
   });
 
   // Game scene
   var gameScene = new dot.GameScene();
+  gameScene.events.bind('gameEnd', function(){
+    engine.scenes.deactivateScene(gameScene);
+    engine.scenes.activateScene(menuScene);
+  })
+
+  // Menu Scene
+  var menuScene = new dot.MenuScene();
+  menuScene.events.bind('gameStart', function(){
+    engine.scenes.deactivateScene(menuScene);
+    engine.scenes.activateScene(gameScene);
+  });
 
   // Add and activiate the scene
   engine.scenes.addScene(gameScene);
-  engine.scenes.activateScene(gameScene);
+  // engine.scenes.activateScene(gameScene);
+
+  engine.scenes.addScene(menuScene);  
+  engine.scenes.activateScene(menuScene);
 
   // Start the update and render loop.
   engine.go(1);
-
-  if (window.devicePixelRatio === 1) {
-
-    var canvas = document.getElementById('live:Node3');
-    canvas.style.width = window.innerWidth / 2 + 'px';
-    canvas.style.height = window.innerHeight / 2 + 'px';
-
-
-  }
 });
 
-var dot = {};
-
-dot.Constants = {
-  Width: window.innerWidth,
-  Height: window.innerHeight,
-};
 
 dot.GameEngine = pulse.Engine.extend({
   init: function(params) {
     this._super(params);
   }
 });
+
+dot.MenuScene = pulse.Scene.extend({
+  init: function(params) {
+    var self = this;
+    this._super(params);
+
+    // Create a new layer
+    var layer = new pulse.Layer();
+    layer.anchor.x = 0;
+    layer.anchor.y = 0;
+    this.addLayer(layer);
+
+
+    // Play Button
+    var playButton = new pulse.Sprite({
+      src:'img/play-button.png'
+    });
+    playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
+    playButton.events.bind('touchend', function(e){
+      self.events.raiseEvent('gameStart', e);
+    });
+    
+    layer.addNode(playButton);
+  }
+});
+
+
 
 dot.GameScene = pulse.Scene.extend({
   init: function(params) {
@@ -82,7 +119,6 @@ dot.GameScene = pulse.Scene.extend({
     // Fail Messages!
     this.failureMessages = ['Fail!', 'Nope!', 'Huh?!', 'No!', 'Bad!', 'What?!', 'LOL!'];
 
-    // Failure Messages
     // Create the main game layer
     this.layer = new pulse.Layer();
     this.layer.anchor.x = 0;
@@ -92,38 +128,58 @@ dot.GameScene = pulse.Scene.extend({
     // Score label
     this.scoreLabel = new pulse.CanvasLabel({
       text : '0',
-      fontSize : 48
+      fontSize : 24
     });
     this.scoreLabel.fillColor = "#CCFF00";
     this.scoreLabel.anchor = { x: 0, y: 0 };
-    this.scoreLabel.position = { x: 20, y: 4};
+    this.scoreLabel.position = { x: 10, y: 2};
     this.layer.addNode(this.scoreLabel);
 
     // Combo label
     this.streakLabel = new pulse.CanvasLabel({
       text : 'Streak: 1x',
-      fontSize: 36,
+      fontSize: 18,
     });
     this.streakLabel.fillColor = "#CCFF00";
     this.streakLabel.anchor = { x: 0, y: 0 };
-    this.streakLabel.position = { x: 20, y: 64};
+    this.streakLabel.position = { x: 10, y: 32};
     this.layer.addNode(this.streakLabel);
+
+    // Pause Button
+    this.pauseButton = new pulse.Sprite({
+      src: 'img/x-button.png',
+      size: {
+        width: 24,
+        height: 24
+      }
+    });
+
+    this.pauseButton.position = { 
+      x: dot.Constants.Width - 32,
+      y: 24
+    }
+
+    this.pauseButton.events.bind('touchend', function(e) {
+      self.events.raiseEvent('gameEnd', e);
+    });
+
+    this.layer.addNode(this.pauseButton);
 
     // Timer label
     this.timerLabel = new pulse.CanvasLabel({
       text : '10',
-      fontSize: 48
+      fontSize: 24
     });
 
     this.timerLabel.fillColor = "#CCFF00";
     this.timerLabel.anchor = { x: 0, y: 0 };
-    this.timerLabel.position = { x: 20, y: dot.Constants.Height - 96};
+    this.timerLabel.position = { x: 10, y: dot.Constants.Height - 48};
     this.layer.addNode(this.timerLabel);
 
     // Announcement label
     this.announcementLabel = new dot.AnnouncementLabel({
       text: 'Go!',
-      fontSize: 96,
+      fontSize: 48,
     })
     this.announcementLabel.fillColor = "#CCFF00";
     this.announcementLabel.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
@@ -132,8 +188,8 @@ dot.GameScene = pulse.Scene.extend({
 
     // Timer bar
     this.timerBar = new dot.TimerBar();
-    this.timerBar.position.x = 50;
-    this.timerBar.position.y = 50;
+    this.timerBar.position.x = 25;
+    this.timerBar.position.y = 25;
     this.layer.addNode(this.timerBar);
 
     this.beginRound();
@@ -179,7 +235,6 @@ dot.GameScene = pulse.Scene.extend({
     } else {
       this.incorrectOrder();
     }
-
   },
 
   correctOrder: function (){
@@ -295,8 +350,8 @@ dot.GameScene = pulse.Scene.extend({
       var adot = new dot.DotSprite({
         src: dot.Constants.GreenDot,
         size: {
-          width: 96,
-          height: 96
+          width: 48,
+          height: 48
         },
         name: i
       });
@@ -343,20 +398,18 @@ dot.DotSprite = pulse.Sprite.extend({
     var self = this;
     this._super(params);
 
-    // this.texture = dot.Textures.GreenDot;
-
     this.maxX = dot.Constants.Width;
     this.maxY = dot.Constants.Height;
     this.xMax = this.maxX - (this.size.width/2);
 
-    // 96 px to give room for the bottom timer bar
-    this.yMax = this.maxY - (this.size.height/2) - 96;
+    // 48 px to give room for the bottom timer bar
+    this.yMax = this.maxY - (this.size.height/2) - 48;
 
-    // 48 px to give room not to trigger sidebar
-    this.xMin = this.size.width / 2 + 48;
+    // 24 px to give room not to trigger sidebar
+    this.xMin = this.size.width / 2 + 24;
 
-    // 96 px to give room for the top score and button
-    this.yMin = (this.size.height / 2) + 96;
+    // 48 px to give room for the top score and button
+    this.yMin = (this.size.height / 2) + 48;
 
     this.touched = false;
 
@@ -385,11 +438,11 @@ dot.TimerBar = pulse.Visual.extend({
   draw: function(ctx){
     this._super(ctx);
 
-    var x = 96;
-    var width = this.percentage * (dot.Constants.Width - x - 48);
+    var x = 48;
+    var width = this.percentage * (dot.Constants.Width - x - 24);
 
-    var height = 48;
-    var y = dot.Constants.Height - height - 48;
+    var height = 24;
+    var y = dot.Constants.Height - height - 24;
 
     ctx.fillStyle = "#CCFF00";
     ctx.fillRect(x, y, width, height);
