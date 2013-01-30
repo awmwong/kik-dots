@@ -413,6 +413,10 @@ dot.DotSprite = pulse.Sprite.extend({
 
     this.touched = false;
 
+    this.events.bind('touchstart', function(){
+      self.touchmove();
+    });
+
     this.events.bind('touchmove', function() {
       self.touchmove();
     });
