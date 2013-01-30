@@ -192,6 +192,7 @@ dot.GameScene = pulse.Scene.extend({
     }
 
     this.pauseButton.events.bind('touchend', function(e) {
+      self.resetState();
       self.events.raiseEvent('gameEnd', e);
     });
 
@@ -322,11 +323,11 @@ dot.GameScene = pulse.Scene.extend({
       if (this.score > prevHighScore || prevHighScore === undefined) {
         localStorage['highscore'] = this.score;
       }
-
-      this.events.raiseEvent('gameEnd', this.score);
+      this.state = 'paused';
+      this.announcementLabel.showBadAnnouncement('Game Over!', true);
+    } else {
+      this.beginRound();
     }
-
-    this.beginRound();
   },
 
   updateScore: function() {
@@ -345,7 +346,7 @@ dot.GameScene = pulse.Scene.extend({
     this.streakLabel.text = "Lives: " + this.lives +" | Streak: " + this.streak + "x";
 
 
-    if (this.state == 'animating') {
+    if (this.state === 'animating') {
       this.timerBar.percentage = 1;
       this.time += elapsed;
       if (this.time >= (this.animationSpeed - this.currentLevel)) {
@@ -354,7 +355,7 @@ dot.GameScene = pulse.Scene.extend({
       }
     }
 
-    if (this.state == 'playing') {
+    if (this.state === 'playing') {
       this.elapsedRoundTime += elapsed;
       this.updateTimers();
     }
@@ -545,7 +546,7 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
     if (this.time >= this.animationSpeed) {
       this.time = 0;
       // tick!
-      var newAlpha = Math.max(0, pulse.util.easeOutCubic(this.easeTime, 100, -100, 750));
+      var newAlpha = Math.max(0, pulse.util.easeOutCubic(this.easeTime, 100, -100, this.animationSpeed * 15));
       this.alpha = newAlpha;
 
       if (this.alpha === 0) {
@@ -554,11 +555,16 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
     }
   },
 
-  showAnnouncement: function(message) {
+  showAnnouncement: function(message, slow) {
     var self = this;
 
     this.fillColor = "#CCFF00";
     this.text = message;
+    if (slow) {
+      this.animationSpeed = 50;
+    } else {
+      this.animationSpeed = 50;
+    }
 
     setTimeout(function(){
       self.alpha = 100;
@@ -568,11 +574,16 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
 
   },
 
-  showBadAnnouncement: function(message) {
+  showBadAnnouncement: function(message, slow) {
     var self = this;
 
     this.fillColor = "#FF2200";
     this.text = message;
+    if (slow) {
+      this.animationSpeed = 50;
+    } else {
+      this.animationSpeed = 50;
+    }
 
     setTimeout(function(){
       self.alpha = 100;
