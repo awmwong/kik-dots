@@ -193,7 +193,10 @@ dot.GameScene = pulse.Scene.extend({
 
     this.pauseButton.events.bind('touchend', function(e) {
       self.resetState();
-      self.events.raiseEvent('gameEnd', e);
+
+      setTimeout(function(){
+        self.events.raiseEvent('gameEnd', e);
+      }, 25);
     });
 
     this.layer.addNode(this.pauseButton);
@@ -257,11 +260,22 @@ dot.GameScene = pulse.Scene.extend({
 
     // Labels
     this.scoreLabel.text = this.score;
+    this.announcementLabel.visible = false;
+
+    // Remove the old dots
+    for (var i = this.dots.length - 1; i >= 0; i--) {
+      var adot = this.dots[i]
+      this.layer.removeNode(adot.name);
+    };
+
   },
 
   startNewGame: function(){
+    var self = this;
     this.resetState();
-    this.beginRound();
+    setTimeout(function(){
+      self.beginRound();
+    }, 10);
   },
 
   onTouchMove: function(){
@@ -537,13 +551,14 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
     this.easeTime = 0;
     this.animationSpeed = 50;
     this.alpha = 100;
+    this.zindex = 10;
   },
 
   update: function(elapsed) {
     this._super(elapsed);
     this.time += elapsed;
     this.easeTime += elapsed;
-    if (this.time >= this.animationSpeed) {
+    if (this.time >= this.animationSpeed && this.sticky === false) {
       this.time = 0;
       // tick!
       var newAlpha = Math.max(0, pulse.util.easeOutCubic(this.easeTime, 100, -100, this.animationSpeed * 15));
@@ -555,15 +570,15 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
     }
   },
 
-  showAnnouncement: function(message, slow) {
+  showAnnouncement: function(message, sticky) {
     var self = this;
 
     this.fillColor = "#CCFF00";
     this.text = message;
-    if (slow) {
-      this.animationSpeed = 50;
+    if (sticky) {
+      this.sticky = true;
     } else {
-      this.animationSpeed = 50;
+      this.sticky = false;
     }
 
     setTimeout(function(){
@@ -574,15 +589,15 @@ dot.AnnouncementLabel = pulse.CanvasLabel.extend({
 
   },
 
-  showBadAnnouncement: function(message, slow) {
+  showBadAnnouncement: function(message, sticky) {
     var self = this;
 
     this.fillColor = "#FF2200";
     this.text = message;
-    if (slow) {
-      this.animationSpeed = 50;
+    if (sticky) {
+      this.sticky = true;
     } else {
-      this.animationSpeed = 50;
+      this.sticky = false;
     }
 
     setTimeout(function(){
