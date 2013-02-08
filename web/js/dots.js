@@ -152,7 +152,7 @@ dot.GameScene = pulse.Scene.extend({
     this.failureMessages = ['Fail!', 'Nope!', 'Huh?!', 'No!', 'Bad!', 'What?!', 'LOL!'];
 
     // Create the main game layer
-    this.layer = new pulse.Layer();
+    this.layer = new dot.MainLayer();
     this.layer.anchor.x = 0;
     this.layer.anchor.y = 0;
     this.addLayer(this.layer);
@@ -234,13 +234,14 @@ dot.GameScene = pulse.Scene.extend({
       self.dotTouched(evt);
     });
 
-    this.layer.events.bind('touchend', function() {
+    this.layer.events.bind('touchend', function(evt) {
+      self.layer.touchend(evt);
       self.touchEnd();
     });
 
     this.layer.events.bind('touchmove', function(evt) {
-      self.onTouchMove(evt);
-    });
+      self.layer.touchmove(evt);
+    })
   },
 
   resetState: function(){
@@ -250,7 +251,6 @@ dot.GameScene = pulse.Scene.extend({
     this.streak = 1;
     this.currentDotIndex = 0;
     this.time = 0;
-    this.trailTime = 0;
     this.animationSpeed = 75;
     this.score = 0;
     this.lastDotTouched = -1;
@@ -276,10 +276,6 @@ dot.GameScene = pulse.Scene.extend({
     setTimeout(function(){
       self.beginRound();
     }, 10);
-  },
-
-  onTouchMove: function(){
-
   },
 
   dotTouched: function(evt) {
@@ -314,6 +310,7 @@ dot.GameScene = pulse.Scene.extend({
     } else {
       this.incorrectOrder();
     }
+
   },
 
   correctOrder: function (){
@@ -343,6 +340,7 @@ dot.GameScene = pulse.Scene.extend({
       this.beginRound();
     }
   },
+
 
   updateScore: function() {
     var timeRemaining = this.roundDuration - this.elapsedRoundTime;
@@ -455,6 +453,7 @@ dot.GameScene = pulse.Scene.extend({
       } while (this.checkOverlapping(adot));
 
       adot.alpha = 0;
+      adot.zindex = 1;
       this.layer.addNode(adot);
       this.dots[i] = adot;
     }
@@ -483,6 +482,77 @@ dot.GameScene = pulse.Scene.extend({
   }
 });
 
+dot.MainLayer = pulse.Layer.extend({
+  init: function(params) {
+    var self = this;
+    this._super(params);
+
+    this.events.bind('touchmove', function(evt) {
+      self.touchmove(evt);
+    });
+
+    // this.events.bind('touchend'), function(evt) {
+    //   self.touchend(evt);
+    // }
+
+    this.lastTrailPoint = { position: {x: 0, y:0 } };
+    this.trailPoints = [];
+  },
+
+  draw: function(ctx){
+    this._super(ctx);
+
+    for (var i = 0; i < this.trailPoints.length; i++) {
+      var point = this.trailPoints[i]
+
+    }
+  },
+
+  touchmove: function(evt){
+
+    var evtX = evt.position.x.toFixed(0);
+    var evtY = evt.position.y.toFixed(0);
+
+    var lastX = this.lastTrailPoint.position.x;
+    var lastY = this.lastTrailPoint.position.y;
+
+    var xs = evtX - lastX;
+
+    xs *= xs;
+
+    var ys = evtY - lastY;
+    ys *= ys;
+
+    var lineDistance = Math.sqrt(xs + ys);
+    if (lineDistance >= 10) {
+      this.addNewTrailPoint({x: evtX, y: evtY});
+    }
+  },
+
+  addNewTrailPoint: function(point){
+    var trailPoint = new dot.TrailDotSprite({
+      name: 'tp' + point.x + point.y
+    });
+
+    trailPoint.position.x = point.x;
+    trailPoint.position.y = point.y;
+
+    this.lastTrailPoint = trailPoint;
+    this.trailPoints.push(trailPoint);
+    this.addNode(trailPoint);
+    console.log('added: ' + trailPoint.name);
+  },
+
+  touchend: function(){
+    for (var i = 0; i < this.trailPoints.length; i++) {
+      var trailPoint = this.trailPoints[i];
+      this.removeNode(trailPoint.name);
+    }
+    this.trailPoints.length = 0;
+  },
+
+
+});
 
 dot.DotSprite = pulse.Sprite.extend({
   init: function(params){
@@ -521,8 +591,21 @@ dot.DotSprite = pulse.Sprite.extend({
       this.parent.events.raiseEvent('dotTouched', event);
     }
   },
-
 });
+
+dot.TrailDotSprite = pulse.Visual.extend({
+  init: function(params){
+    this._super(params);
+  },
+
+  draw: function(ctx){
+    this._super(ctx);
+    ctx.beginPath();
+    ctx.arc(this.position.x, this.position.y, 2, 0, Math.PI*2, true);
+    ctx.closePath();
+    ctx.fill();
+  }
+})
 
 dot.TimerBar = pulse.Visual.extend({
   init: function(params) {
