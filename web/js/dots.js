@@ -422,8 +422,15 @@ dot.GameScene = pulse.Scene.extend({
     var dotCount;
 
     // Generate the dots
-    this.generateDots(Math.min(12, Math.max(3, Math.floor(this.currentLevel / 3))));
+    this.generateDots(this.numDotsForLevel(this.currentLevel));
 
+  },
+
+  numDotsForLevel: function(number) {
+    // Follows a logarithmic difficulty curve.
+    var dotsForLevel = 2 * Math.log(this.currentLevel);
+
+    return Math.min(12, Math.max(3, Math.floor(dotsForLevel)));
   },
 
   generateDots: function(number) {
