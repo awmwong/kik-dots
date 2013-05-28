@@ -33,6 +33,14 @@ cards.ready(function(){
     gameWindow: 'game-window'
   });
 
+  // Tutorial Scene
+  var tutorialScene = new dot.TutorialScene();
+  tutorialScene.events.bind('gameStart', function(){
+    engine.scenes.deactivateScene(tutorialScene);
+    gameScene.startNewGame();
+    engine.scenes.activateScene(gameScene);
+  });
+
   // Game scene
   var gameScene = new dot.GameScene();
   gameScene.events.bind('gameEnd', function(){
@@ -48,14 +56,22 @@ cards.ready(function(){
     engine.scenes.activateScene(gameScene);
   });
 
+  menuScene.events.bind('tutorialStart', function(){
+    engine.scenes.deactivateScene(menuScene);
+    engine.scenes.activateScene(tutorialScene);
+
+  })
+
+
   // Add and activiate the scene
   engine.scenes.addScene(gameScene);
-  // engine.scenes.activateScene(gameScene);
+  engine.scenes.addScene(menuScene);
+  engine.scenes.addScene(tutorialScene);
 
-  engine.scenes.addScene(menuScene);  
   engine.scenes.activateScene(menuScene);
 
   // Start the update and render loop.
+  // Run as fast as you can!
   engine.go(1);
   
 });
@@ -101,7 +117,13 @@ dot.MenuScene = pulse.Scene.extend({
     });
     this.playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
     this.playButton.events.bind('touchend', function(e){
-      self.events.raiseEvent('gameStart', e);
+      var seenTutorial = localStorage['seenTutorial'];
+
+      if (seenTutorial !== undefined && seenTutorial == 'true') {
+        self.events.raiseEvent('gameStart', e);
+      } else {
+        self.events.raiseEvent('tutorialStart', e);
+      }
     });
     this.menuLayer.addNode(this.playButton);
 
@@ -132,6 +154,49 @@ dot.MenuScene = pulse.Scene.extend({
 });
 
 
+dot.TutorialScene = pulse.Scene.extend({
+  init: function(params) {
+    var self = this;
+    this._super(params);
+
+    // Set flag that tutorial has been seen
+    localStorage['seenTutorial'] = true;
+
+    this.tutorialLayer = new pulse.Layer();
+    this.tutorialLayer.anchor.x = 0;
+    this.tutorialLayer.anchor.y = 0;
+    this.addLayer(this.tutorialLayer);
+
+    this.tutorialImage = new pulse.Sprite({
+      src:'img/how-to-dotts.png',
+      size: {
+        width: 320,
+        height: 400,
+      }
+    });
+    this.tutorialLayer.addNode(this.tutorialImage);
+    this.tutorialImage.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2 - 45};
+
+    // Play Button
+    this.playButton = new pulse.Sprite({
+      src:'img/play-button.png',
+      size: {
+        width: 160,
+        height: 90
+      }
+    });
+    this.playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2 + 175};
+    this.playButton.events.bind('touchend', function(e){
+      self.events.raiseEvent('gameStart', e);
+    });
+    this.tutorialLayer.addNode(this.playButton);
+  },
+
+  update: function(elapsed) {
+    this._super(elapsed);
+  },
+
+});
 
 dot.GameScene = pulse.Scene.extend({
   init: function(params) {
@@ -547,7 +612,6 @@ dot.MainLayer = pulse.Layer.extend({
     this.lastTrailPoint = trailPoint;
     this.trailPoints.push(trailPoint);
     this.addNode(trailPoint);
-    console.log('added: ' + trailPoint.name);
   },
 
   touchend: function(){
@@ -573,8 +637,8 @@ dot.DotSprite = pulse.Sprite.extend({
     // 48 px to give room for the bottom timer bar
     this.yMax = this.maxY - (this.size.height/2) - 48;
 
-    // 24 px to give room not to trigger sidebar
-    this.xMin = this.size.width / 2 + 24;
+    // 36 px to give room not to trigger sidebar
+    this.xMin = this.size.width / 2 + 36;
 
     // 48 px to give room for the top score and button
     this.yMin = (this.size.height / 2) + 48;
