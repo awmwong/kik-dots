@@ -159,9 +159,6 @@ dot.TutorialScene = pulse.Scene.extend({
     var self = this;
     this._super(params);
 
-    // Set flag that tutorial has been seen
-    localStorage['seenTutorial'] = true;
-
     this.tutorialLayer = new pulse.Layer();
     this.tutorialLayer.anchor.x = 0;
     this.tutorialLayer.anchor.y = 0;
@@ -187,6 +184,8 @@ dot.TutorialScene = pulse.Scene.extend({
     });
     this.playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2 + 175};
     this.playButton.events.bind('touchend', function(e){
+      // Set flag that tutorial has been seen
+      localStorage['seenTutorial'] = true;
       self.events.raiseEvent('gameStart', e);
     });
     this.tutorialLayer.addNode(this.playButton);
