@@ -1,12 +1,48 @@
-// CARDS STUFF
-// Lock the orientation in lanscape mode
-cards.ready(function(){
-  console.log("Cards Ready");
+var dot = {};
+
+dot.Constants = {
+  Width: 0,
+  Height: 0
+};
+
+dot.GameEngine = pulse.Engine.extend({
+  init: function(params) {
+    this._super(params);
+  }
+});
+
+dot.User = {name: "Unknown", username: "kikteam", picture: null};
+
+function doCardThings(){
 
   if (cards.browser) {
     cards.browser.setOrientationLock('portrait');
 
   }
+
+  cards.kik.getUser(function(user){
+
+    if (!user) {
+      return ;
+    }
+
+    dot.User = {
+      name: user.fullName,
+      username: user.username,
+      picture: user.thumbnail
+    }
+
+  });
+  
+}
+
+cards.ready(function(){
+  console.log("Cards Ready");
+
+  if (cards.enabled === true) {
+    doCardThings();
+  }
+
 
   console.log('Pulse Ready');
 
@@ -75,18 +111,4 @@ cards.ready(function(){
   // Run as fast as you can!
   engine.go(1);
   
-});
-
-
-var dot = {};
-
-dot.Constants = {
-  Width: 0,
-  Height: 0
-};
-
-dot.GameEngine = pulse.Engine.extend({
-  init: function(params) {
-    this._super(params);
-  }
 });
