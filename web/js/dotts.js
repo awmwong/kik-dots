@@ -1,4 +1,17 @@
 var dot = {};
+    dot.firebase = {};
+
+if (!String.prototype.format) {
+  String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+      return typeof args[number] != 'undefined'
+        ? args[number]
+        : match
+      ;
+    });
+  };
+}
 
 dot.Constants = {
   Width: 0,
@@ -12,6 +25,75 @@ dot.GameEngine = pulse.Engine.extend({
 });
 
 dot.User = {name: "Unknown", username: "kikteam", picture: null};
+
+dot.Scores = {
+
+  arrayOfScores: [],
+
+  generateScoreCell: function(username, score, picture) {
+  
+    var picUrl;
+    if (picture) {
+      picUrl = 'http:' + picture;
+    } else {
+      picUrl = 'http://placekitten.com/48/48';
+    }
+
+    
+    return "<div class='score-cell'> <img class='score-image' src='{0}'> <div class='score-text-wrapper'> <div class='score-username'>{1}</div> <div class='score-highscore'>{2}</div> </div> </div>".format(picUrl, username, score);
+
+  },
+
+  updateScore: function(data) {
+    var kikuser = data.kikuser;
+    var score = data.score;
+    var picture = data.picture;
+
+    for (var i = 0; i < this.arrayOfScores.length; i++) {
+      var item = this.arrayOfScores[i];
+
+      if (item.kikuser == kikuser) {
+        this.arrayOfScores[i].score = score;
+        this.arrayOfScores[i].picture = picture;
+      }
+    }
+  },
+
+  sortedScores: function() {
+
+    return this.arrayOfScores.sort(function (a, b) {
+      return b.score - a.score;
+    });
+  },
+
+  top5: function() {
+    return this.sortedScores().slice(0,5);
+  },
+
+  generateLeaderboard: function() {
+    var top5scores = this.top5();
+
+    $('#leaderboard-cell-wrapper').empty();
+
+    for (var i = 0; i < top5scores.length; i++) {
+      var item = top5scores[i];
+
+      $('#leaderboard-cell-wrapper').append(this.generateScoreCell(item.kikuser, item.score, item.picture));      
+    }
+
+  },
+
+  showLeaderboard: function() {
+    $('#game-window').hide();
+    $('#leaderboard').show();
+  },
+
+  hideLeaderboard: function() {
+    $('#game-window').show();
+    $('#leaderboard').hide();
+  }
+
+}
 
 function doCardThings(){
 
@@ -36,15 +118,45 @@ function doCardThings(){
   
 }
 
+
+dot.firebase.rootRef = new Firebase('https://dotts.firebaseio.com/');
+dot.firebase.scoresRef = new Firebase('https://dotts.firebaseio.com/scores');
+
+dot.firebase.scoresRef.on('child_added', function(snapshot) {
+  var scoreData = snapshot.val();
+  dot.Scores.arrayOfScores.push(scoreData);
+
+  dot.Scores.generateLeaderboard();
+});
+
+dot.firebase.scoresRef.on('child_changed', function(snapshot) {
+  var scoreData = snapshot.val();
+
+  dot.Scores.updateScore(scoreData);
+  dot.Scores.generateLeaderboard();
+})
+
 cards.ready(function(){
-  console.log("Cards Ready");
 
   if (cards.enabled === true) {
     doCardThings();
   }
 
+  // var userScoreRef = new Firebase('https://dotts.firebaseio.com/scores/' + 'kikteam7');
 
-  console.log('Pulse Ready');
+  // userScoreRef.update({
+  //   kikuser: 'kikteam7',
+  //   score: 51134,
+  // });
+
+  // LEADERBOARD STUFF
+
+  $('#leaderboard-x').tap(function() {
+    dot.Scores.hideLeaderboard();
+  });
+
+  // END LEADERBOARD
+
 
   // Textures
   dot.Constants.GreenDot = new pulse.Texture({

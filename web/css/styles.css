@@ -1,6 +1,63 @@
 /* TODO */
+
+body {
+  background: #000 url('../img/background.png');
+}
+
 #game-window {
   background: #000 url('../img/background.png');
   /*background: red;*/
   overflow: hidden;
 }
+
+#leaderboard {
+  background: #000 url('../img/background.png');
+
+  height: 300px;
+  width: 300px;
+  margin: -150px auto auto -150px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #CCFF00;
+
+}
+
+#leaderboard-x {
+  height: 24px;
+  width: 24px;
+
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+#leaderboard-x img {
+  height: 24px;
+  width: 24px;
+}
+
+#leaderboard-title {
+  size: 20pt;
+  margin-bottom: 12px;
+}
+
+.score-image {
+  float: left;
+  width: 48px;
+  height: 48px;
+}
+
+.score-text-wrapper {
+  color: #CCFF00;
+  margin-left: 24px;
+  float: left;
+
+}
+
+.score-cell {
+  height: 48px;
+  margin-bottom: 10px;
+  margin-left: 24px;
+}
+

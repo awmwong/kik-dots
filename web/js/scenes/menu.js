@@ -38,6 +38,23 @@ dot.MenuScene = pulse.Scene.extend({
     this.menuLayer.addNode(this.scoreLabel);
     this.scoreLabel.position = { x: dot.Constants.Width / 2, y: (dot.Constants.Height / 2) + (this.playButton.size.height / 2) + 24};
     this.scoreLabel.fillColor = '#CCFF00'
+
+    // Scores button
+
+    this.scoreButton = new pulse.Sprite({
+      src:'img/score-button.png',
+      size: {
+        width: 107,
+        height: 60
+      }
+    })
+    this.scoreButton.position = { x: dot.Constants.Width / 2, y: this.scoreLabel.position.y + 60 };
+    this.scoreButton.events.bind('touchend', function(e) {
+      dot.Scores.showLeaderboard();
+    })
+
+    this.menuLayer.addNode(this.scoreButton);
+
   },
 
   update: function(elapsed) {
