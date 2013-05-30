@@ -199,16 +199,17 @@ dot.GameScene = pulse.Scene.extend({
       if (this.score > prevHighScore || prevHighScore === undefined) {
         localStorage['highscore'] = this.score;
 
+        var cleanUsername = dot.User.username.replace('.', '__');
+
+        var userScoreRef = new Firebase('https://dotts.firebaseio.com/scores/' + cleanUsername);
+
+        userScoreRef.update({
+          kikuser: cleanUsername,
+          picture: dot.User.picture,
+          score: this.score,
+        });
 
       }
-
-      var userScoreRef = new Firebase('https://dotts.firebaseio.com/scores/' + dot.User.username);
-
-      userScoreRef.update({
-        kikuser: dot.User.username,
-        picture: dot.User.picture,
-        score: this.score,
-      });
 
       this.state = 'paused';
       this.announcementLabel.showBadAnnouncement('Game Over!', true);

@@ -45,7 +45,7 @@ dot.Scores = {
   },
 
   updateScore: function(data) {
-    var kikuser = data.kikuser;
+    var kikuser = data.kikuser.replace('__', '.');
     var score = data.score;
     var picture = data.picture;
 
@@ -124,6 +124,7 @@ dot.firebase.scoresRef = new Firebase('https://dotts.firebaseio.com/scores');
 
 dot.firebase.scoresRef.on('child_added', function(snapshot) {
   var scoreData = snapshot.val();
+  scoreData.kikuser = scoreData.kikuser.replace('__', '.');
   dot.Scores.arrayOfScores.push(scoreData);
 
   dot.Scores.generateLeaderboard();
