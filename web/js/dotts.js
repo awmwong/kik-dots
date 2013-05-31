@@ -86,12 +86,16 @@ dot.Scores = {
   showLeaderboard: function() {
     $('#game-window').hide();
     $('#leaderboard').show();
+    this.shown = true;
   },
 
   hideLeaderboard: function() {
     $('#game-window').show();
     $('#leaderboard').hide();
-  }
+    this.shown = false;
+  },
+
+  shown: false
 
 }
 

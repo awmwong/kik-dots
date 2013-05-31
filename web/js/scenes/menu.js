@@ -20,6 +20,11 @@ dot.MenuScene = pulse.Scene.extend({
     });
     this.playButton.position = { x: dot.Constants.Width / 2, y: dot.Constants.Height / 2};
     this.playButton.events.bind('touchend', function(e){
+
+      if (dot.Scores.shown == true) {
+        return;
+      }
+
       var seenTutorial = localStorage['seenTutorial'];
 
       if (seenTutorial !== undefined && seenTutorial == 'true') {
